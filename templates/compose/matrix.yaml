@@ -12,7 +12,7 @@ services:
       - SERVICE_URL_MATRIX_8008
       - SYNAPSE_SERVER_NAME=${SERVICE_FQDN_MATRIX}
       - SYNAPSE_REPORT_STATS=${SYNAPSE_REPORT_STATS:-no}
-      - ENABLE_REGISTRATION=${ENABLE_REGISTRATION:-false}
+      - ENABLE_REGISTRATION=${ENABLE_REGISTRATION:-true}
       - RECAPTCHA_PUBLIC_KEY=${RECAPTCHA_PUBLIC_KEY}
       - RECAPTCHA_PRIVATE_KEY=${RECAPTCHA_PRIVATE_KEY}
       - _SERVER_NAME=${SERVICE_FQDN_MATRIX}
@@ -74,7 +74,7 @@ services:
         form_secret: $(<./form_secret)
         signing_key_path: "/data/${SERVICE_FQDN_MATRIX}.signing.key"
 
-        #rooms
+        # rooms
         auto_join_rooms:
           - "#general:${SERVICE_FQDN_MATRIX}"
 
@@ -83,6 +83,7 @@ services:
           - server_name: "matrix.org"
         autocreate_auto_join_rooms_federated: false
         allow_public_rooms_over_federation: false
+        suppress_key_server_warning: true
         EOF
         ########################
         #                      #
@@ -95,6 +96,7 @@ services:
         && cat <<EOF >> /data/homeserver.yaml
         #registration
         enable_registration: true  # Allows users to register on your server.
+        enable_registration_without_verification: true  # Warning: no email/captcha/token.
         EOF
 
         [ -n "${RECAPTCHA_PUBLIC_KEY}" ] && ! grep "${RECAPTCHA_PUBLIC_KEY}" /data/homeserver.yaml &>/dev/null \
@@ -130,3 +132,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  element:
+    image: vectorim/element-web:latest
+    environment:
+      - SERVICE_URL_ELEMENT_80
+      - DEFAULT_HOMESERVER_URL=https://${SERVICE_FQDN_MATRIX}:8008
+    depends_on:
+      - matrix
+    restart: unless-stopped
+    volumes:
+      - element-config:/app/config
+
+volumes:
+  matrix-data:
+  element-config:
